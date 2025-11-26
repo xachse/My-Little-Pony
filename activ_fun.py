@@ -40,19 +40,6 @@ class Network():
         training_data = list(zip(X_train, y_train)) # Liste von Tupeln (x, y), wobei x der Input (ein Spaltenvektor) und y (die zugehörige Zahl zu x) die korrekte Ausgabe ist.
         test_data = list(zip(X_test, y_test))
 
-    def sigmoid(self, z):
-        '''
-        Die Sigmoid-Aktivierungsfunktion, die jede gewichtete Summe in einen Wert zwischen 0 und 1 umwandelt.
-        '''
-        return 1.0/(1.0+np.exp(-z))
-    
-
-    def sigmoid_prime(self, z):
-        '''
-        Die Ableitung der Sigmoid-Funktion.
-        '''
-        return self.sigmoid(z)*(1-self.sigmoid(z))
-
 
     def one_hot_encode(self, j):
         '''
