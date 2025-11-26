@@ -7,17 +7,17 @@ class Network():
     def __init__(self, sizes=[64, 64, 32, 3]):
         '''
         Diese Funktion initilaiisert zufällig, gleichverteilte Gewichte und Biases für das Netzwerk"
-        mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 28^2 Input-Neuronen,
+        mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
         64 in der zweiten Layer, 32 in der dritten und schließlich 3 in der letzten Layer.
         Anschließend werden die Test- und Trainingsdaten importiert und vorbereitet.
         '''
-        self.num_layers = len(sizes)
+        self.num_layers = 3
         self.sizes = sizes
         self.biases = []
-        for i in range(1, len(sizes)):
+        for i in range(3):
             self.biases.append(np.random.randn(sizes[i], 1))
         self.weights = []
-        for i in range(len(sizes) - 1):
+        for i in range(2):
             self.weights.append(np.random.randn(sizes[i + 1], sizes[i])) 
 
         # Nun werden die Test- und Trainingsdaten importiert
@@ -70,6 +70,10 @@ class Network():
         test_results = [(np.argmax(self.feedforward(x)), y)
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
+
+		
+		def loss(y_pred, y_true):
+        	return 0.5 * np.sum((y_pred - y_true)**2)
 
 
 
