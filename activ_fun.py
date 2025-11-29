@@ -35,17 +35,13 @@ class Network():
         digits = sklearn.datasets.load_digits()
         X = digits.data  # Matrix mit 1797 Zeilen (Anzahl der Bilder, nach Dokumentation) und 64 Spalten (8x8 Bilder)    
         y = digits.target  # Labels (Zahlen von 0 bis 9)
-		
         mask = np.isin(y, [1, 5, 7])
         X = X[mask]
         y = y[mask]
-		
         label_map = {1: 0, 5: 1, 7: 2}
         y = np.array([label_map[label] for label in y])  # Labels werden umgewandelt zu 0, 1, 2
-		
         X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)  # Split 
         scaler = sklearn.preprocessing.StandardScaler()  # Skalierung 
-		
         X_train = scaler.fit_transform(X_train)
         X_test  = scaler.transform(X_test)
         X_train = [x.reshape(64, 1) for x in X_train] # zu Spaltenvektoren umformen
@@ -70,7 +66,9 @@ class Network():
         label_map = {1:0, 5:1, 7:2}
         y = np.array([label_map[k] for k in y])
 
-        X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+        X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(
+            X, y, test_size=0.2, random_state=42, stratify=y
+        )
 
         scaler = sklearn.preprocessing.StandardScaler()
         X_train = scaler.fit_transform(X_train)
@@ -81,6 +79,8 @@ class Network():
 
         self.training_data = list(zip(X_train, y_train))
         self.test_data = list(zip(X_test, y_test))
+
+    
 
 
     def one_hot_encode(self, j):
@@ -123,10 +123,10 @@ class Network():
             activations, _ = self.forward(x)
             pred = np.argmax(activations[-1])  # letzte Aktivierung (Output-Layer)
             test_results.append((pred, y))
-        return sum(int(x == y) for (x, y) in test_results)
+        return sum(int(x == y) for (x, y) in test_results), test_results
     
 
-    # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
+    # Stochastic Gradient Descent (SGD) Methode inspiriert von Michael Nielsen's Buch "Neural Networks and Deep Learning"
 
     def SGD(self, training_data, epochs, mini_batch_size, eta):
         """Train the neural network using mini-batch stochastic
@@ -160,7 +160,7 @@ class Network():
         self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
     
-    # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
+    # Stochastic Gradient Descent (SGD) Methode inspiriert von Michael Nielsen's Buch "Neural Networks and Deep Learning"
 
 
     def backprop(self, x, y_true):
@@ -241,6 +241,44 @@ class Network():
     def softplus_prime(self, x):
         return self.sigmoid(x)
     
+    def print_confusion_matrix(self, classes=[1,5,7]):
+	
+        ergebnis=self.evaluate(self.test_data)[1]
+        n=len(classes)
+        m=len(ergebnis)
+        
+        confusion_matrix=np.zeros((n, n), dtype=int)
+        
+        for (x,y) in ergebnis:
+            confusion_matrix[y,x]+=1
+        
+        string="Real\t|Predicted\n\t"
+        
+        for i in range(n):
+            string+="|"+str(classes[i])+"\t"
+        string+="\n-"
+        
+        for i in range(n):
+            string+="-------+"
+        string+="-------\n"
+        
+        
+        for i in range(n):
+            string+=str(classes[i])+"\t"
+            for j in range(n):
+                string+="|"+str(confusion_matrix[i,j])+"\t"
+            string+="\n\t"
+            for j in range(n):
+                percentage=round(confusion_matrix[i,j]/m*100, 1)
+                
+                string+="|"+str(percentage)+" %\t"
+            string+="\n-"
+            for i in range(n):
+                string+="-------+"
+            string+="-------\n"
+        
+        return string 
+    
 
 
 if __name__ == "__main__":
@@ -253,5 +291,6 @@ if __name__ == "__main__":
     net2 = Network() 
     net2.SGD(net2.training_data, epochs=30, mini_batch_size=500, eta=0.1) 
     accuracy2 = net2.evaluate(net2.test_data) 
-    print(f"Genauigkeit nach SGD: {accuracy2} von {len(net2.test_data)} Testbeispielen korrekt klassifiziert.")
+    print(f"Genauigkeit nach SGD: {accuracy2[0]} von {len(net2.test_data)} Testbeispielen korrekt klassifiziert.")
+    print(net2.print_confusion_matrix(classes=[0,1,2]))
 
