@@ -173,14 +173,20 @@ class Network():
         epoch, and partial progress printed out.  This is useful for
         tracking progress, but slows things down substantially."""
         n = len(training_data)
-        
-        print(f"Training progress: 0.0 %", end="\r")
-		
         for j in range(epochs):
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, loss)
-			
+
+            for x,y in training_data:
+                activations, _ = self.forward(x)
+                if loss == "mse":
+                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+                elif loss == "ce":
+                    current_loss = self.cross_entropy_loss(activations[-1], y)
+                else:
+                    raise ValueError("Loss muss 'mse' oder 'ce' sein")
+
             progress=round(j/epochs*100,1)
             
             print(f"Training progress: {progress} %    ", end="\r")
@@ -252,25 +258,32 @@ class Network():
             self.biases[i]  -= lr * nabla_b[i]
     
 
-    def train_full_batch(self, training_data, epochs=50, lr=0.1):
-		
-		print(f"Training progress: 0.0 %", end="\r")
-		
-		for epoch in range(epochs):
-            
+    def train_full_batch(self, training_data, epochs=50, lr=0.1, loss="mse"):
+
+        for epoch in range(epochs):
+
             sum_nabla_w = [np.zeros_like(w) for w in self.weights]
             sum_nabla_b = [np.zeros_like(b) for b in self.biases]
-            
+
             for x, y in training_data:  # berechne Gradienten für jedes Trainingspunkt 
-                nabla_w, nabla_b = self.backprop(x, y)
-                
+                nabla_w, nabla_b = self.backprop(x, y, loss)
+
                 for i in range(len(self.weights)):  # Gradienten aufsummieren, Mittelwert bilden ist nicht nötig 
                     sum_nabla_w[i] += nabla_w[i]
                     sum_nabla_b[i] += nabla_b[i]
-            
+
+                activations, _ = self.forward(x)
+                if loss == "mse":
+                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+                elif loss == "ce":
+                    current_loss = self.cross_entropy_loss(activations[-1], y)
+                else:
+                    raise ValueError("Loss muss 'mse' oder 'ce' sein")
+
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
-            
-            progress=round(j/epochs*100,1)
+
+            progress=round(epoch/epochs*100,1)
+
             print(f"Training progress: {progress} %    ", end="\r")
 
 
@@ -373,6 +386,7 @@ if __name__ == "__main__":
             else:
                 print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
     else:
+        # MNIST → immer mini-batch
         train_mode = "mini_batch"
         print("\nHinweis: MNIST ist zu groß für Full Batch Gradient Descent, daher wird Stochastic Gradient Descent automatisch verwendet.")
 
@@ -425,7 +439,7 @@ if __name__ == "__main__":
     net = Network(dataset=dataset, activation_mode=activation) 
 
     if train_mode == "full_batch":
-        net.train_full_batch(net.training_data, epochs=50, lr=0.1)
+        net.train_full_batch(net.training_data, epochs=100, lr=0.2)
     else:
         net.SGD(net.training_data,
                 epochs=30,
