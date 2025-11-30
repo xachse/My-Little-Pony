@@ -173,10 +173,17 @@ class Network():
         epoch, and partial progress printed out.  This is useful for
         tracking progress, but slows things down substantially."""
         n = len(training_data)
+        
+        print(f"Training progress: 0.0 %", end="\r")
+		
         for j in range(epochs):
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, loss)
+			
+            progress=round(j/epochs*100,1)
+            
+            print(f"Training progress: {progress} %    ", end="\r")
 
 
     def update_mini_batch(self, mini_batch, eta, loss="mse"):
@@ -246,20 +253,25 @@ class Network():
     
 
     def train_full_batch(self, training_data, epochs=50, lr=0.1):
-
-        for epoch in range(epochs):
-
+		
+		print(f"Training progress: 0.0 %", end="\r")
+		
+		for epoch in range(epochs):
+            
             sum_nabla_w = [np.zeros_like(w) for w in self.weights]
             sum_nabla_b = [np.zeros_like(b) for b in self.biases]
-
+            
             for x, y in training_data:  # berechne Gradienten für jedes Trainingspunkt 
                 nabla_w, nabla_b = self.backprop(x, y)
-
+                
                 for i in range(len(self.weights)):  # Gradienten aufsummieren, Mittelwert bilden ist nicht nötig 
                     sum_nabla_w[i] += nabla_w[i]
                     sum_nabla_b[i] += nabla_b[i]
-
+            
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
+            
+            progress=round(j/epochs*100,1)
+            print(f"Training progress: {progress} %    ", end="\r")
 
 
     # Loss-Funktionen, so wie die Aktivierungsfunktionen und deren Ableitungen
