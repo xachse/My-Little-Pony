@@ -1,30 +1,28 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import sklearn
 
 class Network():
 
-    def __init__(self, dataset='mnist'):
+    def __init__(self, dataset='mnist', activation_mode="sigmoid"):
         '''
         Diese Funktion initilaiisert zufällig, gleichverteilte Gewichte und Biases für das Netzwerk
         mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
         64 in der zweiten Layer, 32 in der dritten und schließlich 3 in der letzten Layer.
         Anschließend werden die Test- und Trainingsdaten importiert und vorbereitet.
         '''
-        self.num_layers = 3
         self.biases = []
         self.weights = []
 
+        self.activation_mode = activation_mode
+
         if dataset == "digits":
             self.sizes = [64, 64, 32, 3]
-            for i in range(3):
-                self.biases.append(np.random.randn(self.sizes[i + 1], 1))
-            for i in range(3):
-                self.weights.append(np.random.randn(self.sizes[i + 1], self.sizes[i])) 
+            self.biases = [np.random.randn(self.sizes[i + 1], 1) for i in range(3)]
+            self.weights = [np.random.randn(self.sizes[i + 1], self.sizes[i]) for i in range(3)]
             self.load_digits()
         elif dataset == "mnist":
             self.sizes = [784, 64, 32, 3]
-            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]
+            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
             self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_mnist()
         else:
@@ -80,9 +78,44 @@ class Network():
         self.training_data = list(zip(X_train, y_train))
         self.test_data = list(zip(X_test, y_test))
 
+
+    # ---------------------------------------------------------
+    # Aktivierungsfunktionen abhängig vom Mode
+    # ---------------------------------------------------------
+
+    def activation(self, x):
+        if self.activation_mode == "sigmoid":
+            return self.sigmoid(x)
+        elif self.activation_mode == "softplus":
+            return self.softplus(x)
+        else:
+            raise ValueError("Unbekannter activation_mode")
+
+    def activation_prime(self, x):
+        if self.activation_mode == "sigmoid":
+            return self.sigmoid_prime(x)
+        elif self.activation_mode == "softplus":
+            return self.sigmoid(x)
+        else:
+            raise ValueError("Unbekannter activation_mode")
+
+    def output_activation(self, x):
+        if self.activation_mode == "sigmoid":
+            return self.sigmoid(x)
+        elif self.activation_mode == "softplus":
+            return x  
+        else:
+            raise ValueError("Unbekannter activation_mode")
+
+    def output_activation_prime(self, x):
+        if self.activation_mode == "sigmoid":
+            return self.sigmoid_prime(x)
+        elif self.activation_mode == "softplus":
+            return np.ones_like(x)  
+        else:
+            raise ValueError("Unbekannter activation_mode")
+
     
-
-
     def one_hot_encode(self, j):
         '''
         Diese Funktion wandelt eine Zahl j in einen One-Hot-Vektor um.
@@ -94,16 +127,21 @@ class Network():
 
     def forward(self, a):
         '''
-        Diese Funktion wertet das Netzwerk aus, abhängig vom Input 'a' (ein Spaltenvektor).
+        Diese Funktion wertet das Netzwerk aus, abhängig vom Input 'a' (ein Spaltenvektor) und gibt die
+        Aktivierungen aller Layer sowie die z-Werte (W@a + b) zurück.
         '''
         activations = [a]  # Liste aller a
-        zs = []             # Liste aller z = W@a + b // werden für Backpropagation benötigt
+        zs = []             # Liste aller z = W @ a + b // werden für Backpropagation benötigt
 
         for i in range(len(self.weights)):
             z = self.weights[i] @ a + self.biases[i]
             zs.append(z)
-            a = self.sigmoid(z)
+            if i == len(self.weights) - 1:
+                a = self.output_activation(z)
+            else:
+                a = self.activation(z)
             activations.append(a)
+
         return activations, zs
     
 
@@ -115,9 +153,6 @@ class Network():
         denkt die richtige Zahl zum Input x sei. Die Funktion zählt, wie oft das Netzwerk richtig lag und gibt 
         diese Zahl zurück.
         '''
-        """test_results = [(np.argmax(self.forward(x)[0]), y)
-                        for (x, y) in test_data]
-        return sum(int(x == y) for (x, y) in test_results)"""
         test_results = []
         for (x, y) in test_data:
             activations, _ = self.forward(x)
@@ -126,9 +161,9 @@ class Network():
         return sum(int(x == y) for (x, y) in test_results), test_results
     
 
-    # Stochastic Gradient Descent (SGD) Methode inspiriert von Michael Nielsen's Buch "Neural Networks and Deep Learning"
+    # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
 
-    def SGD(self, training_data, epochs, mini_batch_size, eta):
+    def SGD(self, training_data, epochs, mini_batch_size, eta, loss="mse"):
         """Train the neural network using mini-batch stochastic
         gradient descent.  The ``training_data`` is a list of tuples
         ``(x, y)`` representing the training inputs and the desired
@@ -141,10 +176,10 @@ class Network():
         for j in range(epochs):
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
-                self.update_mini_batch(mini_batch, eta)
+                self.update_mini_batch(mini_batch, eta, loss)
 
 
-    def update_mini_batch(self, mini_batch, eta):
+    def update_mini_batch(self, mini_batch, eta, loss="mse"):
         """Update the network's weights and biases by applying
         gradient descent using backpropagation to a single mini batch.
         The ``mini_batch`` is a list of tuples ``(x, y)``, and ``eta``
@@ -152,7 +187,7 @@ class Network():
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
         for x, y in mini_batch:
-            delta_nabla_w, delta_nabla_b = self.backprop(x, y)
+            delta_nabla_w, delta_nabla_b = self.backprop(x, y, loss)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
         self.weights = [w-(eta/len(mini_batch))*nw
@@ -160,10 +195,10 @@ class Network():
         self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
     
-    # Stochastic Gradient Descent (SGD) Methode inspiriert von Michael Nielsen's Buch "Neural Networks and Deep Learning"
+    # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
 
 
-    def backprop(self, x, y_true):
+    def backprop(self, x, y_true, loss="mse"):
         """
         Berechnet die Gradienten der Gewichte und Biases für EIN Trainingsbeispiel (x, y_true).
         Rückgabe:
@@ -182,7 +217,13 @@ class Network():
         y_vec = self.one_hot_encode(y_true)
 
         #  Backprop für die Output Layer 
-        delta = (activations[-1] - y_vec) * self.sigmoid_prime(zs[-1])
+
+        if loss == "mse":
+            delta = (activations[-1] - y_vec) * self.output_activation_prime(zs[-1])
+        elif loss == "ce": 
+            delta = self.softmax(zs[-1]) - y_vec            
+        else:
+            raise ValueError("Loss muss 'mse' oder 'ce' sein")
 
         nabla_b[-1] = delta
         nabla_w[-1] = delta @ activations[-2].T
@@ -190,7 +231,7 @@ class Network():
         #  Backprop für alle Hidden Layers
         for l in range(2, len(self.sizes)):
 
-            delta = (self.weights[-l+1].T @ delta) * self.sigmoid_prime(zs[-l])
+            delta = (self.weights[-l + 1].T @ delta) * self.activation_prime(zs[-l])
 
             nabla_b[-l] = delta
             nabla_w[-l] = delta @ activations[-l-1].T
@@ -205,8 +246,6 @@ class Network():
     
 
     def train_full_batch(self, training_data, epochs=50, lr=0.1):
-    
-        N = len(training_data)   # Anzahl der Trainingsbeispiele
 
         for epoch in range(epochs):
 
@@ -223,11 +262,16 @@ class Network():
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
 
 
-    # Aktivierungsfunktionen und deren Ableitungen
+    # Loss-Funktionen, so wie die Aktivierungsfunktionen und deren Ableitungen
 
     def mse_loss(self, y_pred, y_true):
         return 0.5 * np.sum((y_pred - y_true)**2)
     
+    def cross_entropy_loss(self, y_pred, y_true):
+        y_vec = self.one_hot_encode(y_true)
+        eps = 1e-12
+        return -np.sum(y_vec * np.log(y_pred + eps))
+
     def sigmoid(self, x):
         return 1/(1+np.exp(-x))
     
@@ -282,15 +326,103 @@ class Network():
 
 
 if __name__ == "__main__":
-    net = Network()
-    
-    '''net.train_full_batch(net.training_data, epochs=100, lr=0.2)
-    accuracy = net.evaluate(net.test_data) 
-    print(f"Genauigkeit nach Training: {accuracy} von {len(net.test_data)} Testbeispielen korrekt klassifiziert.")'''
+    print("=== Einstellungen für das Neuronale Netz ===")
 
-    net2 = Network() 
-    net2.SGD(net2.training_data, epochs=30, mini_batch_size=500, eta=0.1) 
-    accuracy2 = net2.evaluate(net2.test_data) 
-    print(f"Genauigkeit nach SGD: {accuracy2[0]} von {len(net2.test_data)} Testbeispielen korrekt klassifiziert.")
-    print(net2.print_confusion_matrix(classes=[0,1,2]))
+    # ------------------------------
+    # 1. Datensatz auswählen
+    # ------------------------------
+    while True:
+        print("\n1) MNIST (28x28) - entspricht 784 Input-Neuronen und etwa 16.000 Trainingsbeispielen.")
+        print("2) Digits (8x8) - entspricht 64 Input-Neuronen und etwa 400 Trainingsbeispielen.")
+        ds_choice = input("Auf welchem Datensatz soll trainiert werden? (1/2): ")
+
+        if ds_choice == "1":
+            dataset = "mnist"
+            break
+        elif ds_choice == "2":
+            dataset = "digits"
+            break
+        else:
+            print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+
+    if dataset == "digits":
+        while True:
+            print("\nWelchen Trainingsmodus möchtest du verwenden?")
+            print("1) Full Batch Gradient Descent")
+            print("2) Mini Batch (SGD)")
+            mode_choice = input("Bitte wählen (1/2): ")
+
+            if mode_choice == "1":
+                train_mode = "full_batch"
+                break
+            elif mode_choice == "2":
+                train_mode = "mini_batch"
+                break
+            else:
+                print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+    else:
+        train_mode = "mini_batch"
+        print("\nHinweis: MNIST ist zu groß für Full Batch Gradient Descent, daher wird Stochastic Gradient Descent automatisch verwendet.")
+
+    # ------------------------------
+    # 2. Aktivierungsfunktion wählen
+    # ------------------------------
+    while True:
+        print("\nWelche Aktivierungsfunktion soll verwendet werden?")
+        print("1) Sigmoid (dann wird automatisch MSE als Loss verwendet, weil Cross-Entropy )")
+        print("2) Softplus")
+        act_choice = input("Bitte wählen (1/2): ")
+
+        if act_choice == "1":
+            activation = "sigmoid"
+            loss = "mse"  
+            break
+
+        elif act_choice == "2":
+            activation = "softplus"
+
+            # ------------------------------
+            # 3. Loss wählen
+            # ------------------------------
+            while True:
+                print("\nWelcher Loss soll verwendet werden?")
+                print("1) MSE")
+                print("2) Cross-Entropy")
+                loss_choice = input("Bitte wählen (1/2): ")
+
+                if loss_choice == "1":
+                    loss = "mse"
+                    break
+                elif loss_choice == "2":
+                    loss = "ce"
+                    break
+                else:
+                    print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
+
+            break
+
+        else:
+            print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+
+    print("\n=== Zusammenfassung der Auswahl ===")
+    print("Datensatz:        ", dataset)
+    print("Aktivierung:      ", activation)
+    print("Lossfunktion:     ", loss)
+    print("=====================================\n")
+
+    net = Network(dataset=dataset, activation_mode=activation) 
+
+    if train_mode == "full_batch":
+        net.train_full_batch(net.training_data, epochs=50, lr=0.1)
+    else:
+        net.SGD(net.training_data,
+                epochs=30,
+                mini_batch_size=200,
+                eta=0.1)
+
+    accuracy = net.evaluate(net.test_data) 
+    percentage = accuracy[0] / len(net.test_data) * 100
+    print(f"Genauigkeit nach SGD: {accuracy[0]} von {len(net.test_data)} Testbeispielen korrekt klassifiziert ({percentage:.2f}%).")
+    print(net.print_confusion_matrix(classes=[0,1,2]))
+
 
