@@ -294,8 +294,8 @@ class Network():
     def mse_loss(self, y_pred, y_true):
         return 0.5 * np.sum((y_pred - y_true)**2)
     
-    def cross_entropy_loss(logits, y_true):
-        logits_shift = logits - np.max(logits)
+    def cross_entropy_loss(self, y_pred, y_true):
+        logits_shift = y_pred - np.max(y_pred)
         exp_logits = np.exp(logits_shift)
         softmax = exp_logits / np.sum(exp_logits)
 
