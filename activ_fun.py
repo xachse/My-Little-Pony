@@ -17,8 +17,10 @@ class Network():
 
         if dataset == "digits":
             self.sizes = [64, 64, 32, 3]
-            self.biases = [np.random.randn(self.sizes[i + 1], 1) for i in range(3)]
-            self.weights = [np.random.randn(self.sizes[i + 1], self.sizes[i]) for i in range(3)]
+            """self.biases = [np.random.randn(self.sizes[i + 1], 1) for i in range(3)]
+            self.weights = [np.random.randn(self.sizes[i + 1], self.sizes[i]) for i in range(3)]"""
+            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
+            self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_digits()
         elif dataset == "mnist":
             self.sizes = [784, 64, 32, 3]
@@ -234,7 +236,7 @@ class Network():
         if loss == "mse":
             delta = (activations[-1] - y_vec) * self.output_activation_prime(zs[-1])
         elif loss == "ce": 
-            delta = self.softmax(zs[-1]) - y_vec            
+            delta = activations[-1] - y_vec            
         else:
             raise ValueError("Loss muss 'mse' oder 'ce' sein")
 
@@ -254,8 +256,8 @@ class Network():
 
     def update_params(self, nabla_w, nabla_b, lr):
         for i in range(len(self.weights)):
-            self.weights[i] -= lr * nabla_w[i]
-            self.biases[i]  -= lr * nabla_b[i]
+            self.weights[i] -= lr * nabla_w[i] / len(self.training_data)
+            self.biases[i]  -= lr * nabla_b[i] / len(self.training_data)
     
 
     def train_full_batch(self, training_data, epochs=50, lr=0.1, loss="mse"):
@@ -292,20 +294,22 @@ class Network():
     def mse_loss(self, y_pred, y_true):
         return 0.5 * np.sum((y_pred - y_true)**2)
     
-    def cross_entropy_loss(self, y_pred, y_true):
-        y_vec = self.one_hot_encode(y_true)
-        eps = 1e-12
-        return -np.sum(y_vec * np.log(y_pred + eps))
+    def cross_entropy_loss(logits, y_true):
+        logits_shift = logits - np.max(logits)
+        exp_logits = np.exp(logits_shift)
+        softmax = exp_logits / np.sum(exp_logits)
+
+        return -np.log(softmax[y_true])
 
     def sigmoid(self, x):
-        return 1/(1+np.exp(-x))
+        return 1 / (1 + np.exp(-np.clip(x, -50, 50)))
     
     def sigmoid_prime(self, x):
         s = self.sigmoid(x)
         return s * (1 - s)
     
     def softplus(self, x):
-        return np.log(1 + np.exp(x))
+        return np.log1p(np.exp(-np.abs(x))) + np.maximum(x, 0)
 
     def softplus_prime(self, x):
         return self.sigmoid(x)
@@ -432,18 +436,21 @@ if __name__ == "__main__":
 
     print("\n=== Zusammenfassung der Auswahl ===")
     print("Datensatz:        ", dataset)
+    print("Trainingsmodus:   ", train_mode)
     print("Aktivierung:      ", activation)
     print("Lossfunktion:     ", loss)
     print("=====================================\n")
 
     net = Network(dataset=dataset, activation_mode=activation) 
 
-    if train_mode == "full_batch":
-        net.train_full_batch(net.training_data, epochs=100, lr=0.2)
+    if train_mode == "full_batch" and activation == "softplus":
+        net.train_full_batch(net.training_data, epochs=50, lr=0.02)
+    elif train_mode == "full_batch" and activation == "sigmoid":
+        net.train_full_batch(net.training_data, epochs=50, lr=1.4)
     else:
         net.SGD(net.training_data,
                 epochs=30,
-                mini_batch_size=200,
+                mini_batch_size=30,
                 eta=0.1)
 
     accuracy = net.evaluate(net.test_data) 
