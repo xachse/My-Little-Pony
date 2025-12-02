@@ -5,8 +5,8 @@ class Network():
 
     def __init__(self, dataset='mnist', activation_mode="sigmoid"):
         '''
-        Diese Funktion initilaiisert zufällig, gleichverteilte Gewichte und Biases für das Netzwerk
-        mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
+        Diese Funktion verwendet die Glorot-Initiliaiserung, um zufällige, gleichverteilte Gewichte mit geringer Varianz für das Netzwerk
+        zu erstellen mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
         64 in der zweiten Layer, 32 in der dritten und schließlich 3 in der letzten Layer.
         Anschließend werden die Test- und Trainingsdaten importiert und vorbereitet.
         '''
@@ -17,8 +17,6 @@ class Network():
 
         if dataset == "digits":
             self.sizes = [64, 64, 32, 3]
-            """self.biases = [np.random.randn(self.sizes[i + 1], 1) for i in range(3)]
-            self.weights = [np.random.randn(self.sizes[i + 1], self.sizes[i]) for i in range(3)]"""
             self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
             self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_digits()
@@ -27,8 +25,6 @@ class Network():
             self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
             self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_mnist()
-        else:
-            raise ValueError("Unbekannter Datensatz")
 
 
     def load_digits(self):
@@ -90,32 +86,24 @@ class Network():
             return self.sigmoid(x)
         elif self.activation_mode == "softplus":
             return self.softplus(x)
-        else:
-            raise ValueError("Unbekannter activation_mode")
 
     def activation_prime(self, x):
         if self.activation_mode == "sigmoid":
             return self.sigmoid_prime(x)
         elif self.activation_mode == "softplus":
             return self.sigmoid(x)
-        else:
-            raise ValueError("Unbekannter activation_mode")
 
     def output_activation(self, x):
         if self.activation_mode == "sigmoid":
             return self.sigmoid(x)
         elif self.activation_mode == "softplus":
             return x  
-        else:
-            raise ValueError("Unbekannter activation_mode")
 
     def output_activation_prime(self, x):
         if self.activation_mode == "sigmoid":
             return self.sigmoid_prime(x)
         elif self.activation_mode == "softplus":
             return np.ones_like(x)  
-        else:
-            raise ValueError("Unbekannter activation_mode")
 
     
     def one_hot_encode(self, j):
@@ -186,8 +174,6 @@ class Network():
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
-                else:
-                    raise ValueError("Loss muss 'mse' oder 'ce' sein")
 
             progress=round(j/epochs*100,1)
             
@@ -236,9 +222,7 @@ class Network():
         if loss == "mse":
             delta = (activations[-1] - y_vec) * self.output_activation_prime(zs[-1])
         elif loss == "ce": 
-            delta = activations[-1] - y_vec            
-        else:
-            raise ValueError("Loss muss 'mse' oder 'ce' sein")
+            delta = activations[-1] - y_vec     
 
         nabla_b[-1] = delta
         nabla_w[-1] = delta @ activations[-2].T
@@ -270,7 +254,7 @@ class Network():
             for x, y in training_data:  # berechne Gradienten für jedes Trainingspunkt 
                 nabla_w, nabla_b = self.backprop(x, y, loss)
 
-                for i in range(len(self.weights)):  # Gradienten aufsummieren, Mittelwert bilden ist nicht nötig 
+                for i in range(len(self.weights)):  # Gradienten aufsummieren
                     sum_nabla_w[i] += nabla_w[i]
                     sum_nabla_b[i] += nabla_b[i]
 
@@ -279,8 +263,6 @@ class Network():
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
-                else:
-                    raise ValueError("Loss muss 'mse' oder 'ce' sein")
 
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
 
@@ -294,8 +276,8 @@ class Network():
     def mse_loss(self, y_pred, y_true):
         return 0.5 * np.sum((y_pred - y_true)**2)
     
-    def cross_entropy_loss(self, y_pred, y_true):
-        logits_shift = y_pred - np.max(y_pred)
+    def cross_entropy_loss(logits, y_true):
+        logits_shift = logits - np.max(logits)
         exp_logits = np.exp(logits_shift)
         softmax = exp_logits / np.sum(exp_logits)
 
@@ -361,7 +343,7 @@ if __name__ == "__main__":
     # 1. Datensatz auswählen
     # ------------------------------
     while True:
-        print("\n1) MNIST (28x28) - entspricht 784 Input-Neuronen und etwa 16.000 Trainingsbeispielen.")
+        print("\n1) MNIST (28x28) - entspricht 784 Input-Neuronen und etwa 16.000 Trainingsbeispielen (hier wird zusätzlich das Paket pandas benötigt).")
         print("2) Digits (8x8) - entspricht 64 Input-Neuronen und etwa 400 Trainingsbeispielen.")
         ds_choice = input("Auf welchem Datensatz soll trainiert werden? (1/2): ")
 
@@ -444,7 +426,7 @@ if __name__ == "__main__":
     net = Network(dataset=dataset, activation_mode=activation) 
 
     if train_mode == "full_batch" and activation == "softplus":
-        net.train_full_batch(net.training_data, epochs=50, lr=0.02)
+        net.train_full_batch(net.training_data, epochs=50, lr=0.03)
     elif train_mode == "full_batch" and activation == "sigmoid":
         net.train_full_batch(net.training_data, epochs=50, lr=1.4)
     else:
