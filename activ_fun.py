@@ -1,5 +1,8 @@
 import numpy as np
 import sklearn
+import os
+
+os.system("")
 
 class Network():
 
@@ -14,6 +17,8 @@ class Network():
         self.weights = []
 
         self.activation_mode = activation_mode
+        self.loss_training=[]
+        self.loss_test=[]
 
         if dataset == "digits":
             self.sizes = [64, 64, 32, 3]
@@ -153,7 +158,7 @@ class Network():
 
     # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
 
-    def SGD(self, training_data, epochs, mini_batch_size, eta, loss="mse"):
+    def SGD(self, training_data, test_data, epochs, mini_batch_size, eta, loss="mse"):
         """Train the neural network using mini-batch stochastic
         gradient descent.  The ``training_data`` is a list of tuples
         ``(x, y)`` representing the training inputs and the desired
@@ -162,19 +167,33 @@ class Network():
         network will be evaluated against the test data after each
         epoch, and partial progress printed out.  This is useful for
         tracking progress, but slows things down substantially."""
+        self.loss_training=np.zeros(epochs)
+        self.loss_test=np.zeros(epochs)
+        
         n = len(training_data)
         for j in range(epochs):
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, loss)
-
+            
             for x,y in training_data:
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
-
+            
+            self.loss_training[j]=current_loss
+            
+            for x,y in test_data:
+                activations, _ = self.forward(x)
+                if loss == "mse":
+                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+                elif loss == "ce":
+                    current_loss = self.cross_entropy_loss(activations[-1], y)
+            
+            self.loss_test[j]=current_loss
+            
             progress=round(j/epochs*100,1)
             
             print(f"Training progress: {progress} %    ", end="\r")
@@ -245,7 +264,10 @@ class Network():
     
 
     def train_full_batch(self, training_data, epochs=50, lr=0.1, loss="mse"):
-
+        
+        self.loss_training=np.zeros(epochs)
+        self.loss_test=np.zeros(epochs)
+        
         for epoch in range(epochs):
 
             sum_nabla_w = [np.zeros_like(w) for w in self.weights]
@@ -263,9 +285,25 @@ class Network():
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
-
+            
+            self.loss_training[epoch]=current_loss
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
+            
+            for x, y in training_data:  # berechne Gradienten für jeden Testpunkt 
+                nabla_w, nabla_b = self.backprop(x, y, loss)
 
+                for i in range(len(self.weights)):  # Gradienten aufsummieren
+                    sum_nabla_w[i] += nabla_w[i]
+                    sum_nabla_b[i] += nabla_b[i]
+
+                activations, _ = self.forward(x)
+                if loss == "mse":
+                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+                elif loss == "ce":
+                    current_loss = self.cross_entropy_loss(activations[-1], y)
+            
+            self.loss_test[epoch]=current_loss
+            
             progress=round(epoch/epochs*100,1)
 
             print(f"Training progress: {progress} %    ", end="\r")
@@ -297,25 +335,29 @@ class Network():
         return self.sigmoid(x)
     
     def print_confusion_matrix(self, classes=[1,5,7]):
-	
+    
         ergebnis=self.evaluate(self.test_data)[1]
         n=len(classes)
         m=len(ergebnis)
         
         confusion_matrix=np.zeros((n, n), dtype=int)
+        targets_number=np.zeros(n, dtype=int)
         
         for (x,y) in ergebnis:
             confusion_matrix[y,x]+=1
+            targets_number[y]+=1
         
         string="Real\t|Predicted\n\t"
         
         for i in range(n):
             string+="|"+str(classes[i])+"\t"
-        string+="\n-"
+        string+="\n\u2500"
+        
+        temp="\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
         
         for i in range(n):
-            string+="-------+"
-        string+="-------\n"
+            string+=temp+"\u253C"
+        string+=temp+"\n"
         
         
         for i in range(n):
@@ -324,17 +366,122 @@ class Network():
                 string+="|"+str(confusion_matrix[i,j])+"\t"
             string+="\n\t"
             for j in range(n):
-                percentage=round(confusion_matrix[i,j]/m*100, 1)
+                percentage=round(confusion_matrix[i,j]/targets_number[i]*100, 1)
                 
-                string+="|"+str(percentage)+" %\t"
-            string+="\n-"
-            for i in range(n):
-                string+="-------+"
-            string+="-------\n"
+                if percentage!=100:
+                    string+="|"+str(percentage)+" %\t"
+                else:
+                    string+="|"+str(percentage)+" %"
+            string+="\n\u2500"
+            for j in range(n):
+                if i!=n-1:
+                    string+=temp+"\u253C"
+                else:
+                    string+=temp+"\u2534"
+            string+=temp+"\n"
         
-        return string 
+        print(string)
     
-
+    def plot_loss(self):
+        
+        string_1="Loss training"
+        string_2="Loss test"
+        
+        werte_2=self.loss_training
+        epochs=len(self.loss_training)
+        
+        hoehe=21
+        breite=epochs
+        
+        #upper frame
+        frame="_"
+        for i in range(breite):
+            frame+="_"
+        frame+="_\n"
+        
+        for i in range(0,hoehe):
+            frame+="|"      #left frame
+            
+            for j in range(breite):
+                temp_3=1/(2*hoehe-2)
+                
+                temp_1=self.loss_training[j]-(1-i/(hoehe-1))
+                temp_2=self.loss_test[j]-(1-i/(hoehe-1))
+                
+                temp_1a=self.loss_training[j]-(1-(i+0.5)/(hoehe-1))
+                temp_2a=self.loss_test[j]-(1-(i+0.5)/(hoehe-1))
+                
+                temp_1b=self.loss_training[j]-(1-(i-0.5)/(hoehe-1))
+                temp_2b=self.loss_test[j]-(1-(i-0.5)/(hoehe-1))
+                
+                #print functions
+                if abs(temp_2)<=1/2*temp_3:
+                    frame+="\033[31m\u2588\033[37m"
+                elif abs(temp_2a)<=1/2*temp_3:
+                    if abs(temp_1)<=1/2*temp_3 or abs(temp_1b)<=1/2*temp_3:
+                        frame+="\033[31m\033[44m\u2584\033[37m\033[40m"
+                    else:
+                        frame+="\033[31m\u2584\033[37m"
+                elif abs(temp_2b)<=1/2*temp_3:
+                    if abs(temp_1)<=1/2*temp_3 or abs(temp_1a)<=1/2*temp_3:
+                        frame+="\033[31m\033[44m\u2580\033[37m\033[40m"
+                    else:
+                        frame+="\033[31m\u2580\033[37m"
+                elif abs(temp_1)<=1/2*temp_3:
+                    frame+="\033[34m\u2588\033[37m"
+                elif abs(temp_1a)<=1/2*temp_3:
+                    frame+="\033[34m\u2584\033[37m"
+                elif abs(temp_1b)<=1/2*temp_3:
+                    frame+="\033[34m\u2580\033[37m"
+                else:
+                    if i==hoehe-1:
+                        frame+="_"    #lower frame
+                    else:
+                        frame+=" "    #nothing here
+            
+            #frame and ticks right
+            if (i+1)%2:#==hoehe-1:
+                frame+=f"\u251c\u2500 {round(1-i/(hoehe-1),1)}\n"    #long ticks
+            else:
+                frame+="\u251c\n"    #short ticks
+        
+        frame+=" "
+        i=0
+        
+        #ticks on lower frame
+        while i<=epochs-5:
+            frame+="|''''"
+            i+=5
+        
+        frame+="|"
+        i+=1
+        while i<=epochs-1:
+            frame+="'"
+            i+=1
+        
+        frame+="\n "
+        i=0
+        
+        while i<=epochs:
+            frame+=f"{i}"
+            number_of_digits=int(len(str(i)))
+            
+            for j in range(5-number_of_digits):
+                frame+=" "
+            
+            i+=5
+        
+        #print x-axis label
+        frame+=f"\n\033[{epochs//2-3}C EPOCHS\n"
+        
+        #print legend
+        frame+=f"\033[31m \u2588\u2588\u2588 \033[37m{string_1}\n\033[34m \u2588\u2588\u2588 \033[37m{string_2}\n"
+        
+        #print y-axis label
+        frame+=f"\033[{epochs+9}C\033[{hoehe//2+8}AL\033[1B\033[1DO\033[1B\033[1DS\033[1B\033[1DS\n"
+        frame+=f"\033[{hoehe//2+6}B\n"
+        
+        print(frame)
 
 if __name__ == "__main__":
     print("=== Einstellungen für das Neuronale Netz ===")
@@ -431,6 +578,7 @@ if __name__ == "__main__":
         net.train_full_batch(net.training_data, epochs=50, lr=1.4)
     else:
         net.SGD(net.training_data,
+                net.test_data,
                 epochs=30,
                 mini_batch_size=30,
                 eta=0.1)
@@ -438,6 +586,8 @@ if __name__ == "__main__":
     accuracy = net.evaluate(net.test_data) 
     percentage = accuracy[0] / len(net.test_data) * 100
     print(f"Genauigkeit nach SGD: {accuracy[0]} von {len(net.test_data)} Testbeispielen korrekt klassifiziert ({percentage:.2f}%).")
-    print(net.print_confusion_matrix(classes=[0,1,2]))
-
+    net.print_confusion_matrix(classes=[1,5,7])
+    net.plot_loss()
+    
+    print(net.loss_test)
 
