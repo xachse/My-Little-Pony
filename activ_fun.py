@@ -574,16 +574,6 @@ if __name__ == "__main__":
                 break
             except ValueError:
                 print("Das war keine gültige Dezimalzahl. Bitte erneut versuchen.")
-        
-        if learningrate<=0:
-            print("Eingabe für die Lernrate ist kleiner gleich 0! Es wird der Standardwert verwendet.")
-            
-            if train_mode == "full_batch" and activation == "softplus":
-                learningrate=0.03
-            elif train_mode == "full_batch" and activation == "sigmoid":
-                learningrate=1.4
-            else:
-                learningrate=0.1
     else:
         if sys.argv[1] == "1":
             dataset = "mnist"
@@ -612,6 +602,16 @@ if __name__ == "__main__":
             loss = "mse"
         
         learningrate=float(sys.argv[5])
+    
+    if learningrate<=0:
+        print("Eingabe für die Lernrate ist kleiner gleich 0! Es wird der Standardwert verwendet.")
+        
+        if train_mode == "full_batch" and activation == "softplus":
+            learningrate=0.03
+        elif train_mode == "full_batch" and activation == "sigmoid":
+            learningrate=1.4
+        else:
+            learningrate=0.1
     
     print("\n=== Zusammenfassung der Auswahl ===")
     print("Datensatz:        ", dataset)
