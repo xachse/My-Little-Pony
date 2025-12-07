@@ -1,6 +1,7 @@
 import numpy as np
 import sklearn
-import os
+import os       #Stellt ein, dass das Terminal farbe unterstützt
+import sys      #um dem Programm Argumente zu übergeben
 
 os.system("")
 
@@ -484,104 +485,154 @@ class Network():
         print(frame)
 
 if __name__ == "__main__":
-    print("=== Einstellungen für das Neuronale Netz ===")
-
-    # ------------------------------
-    # 1. Datensatz auswählen
-    # ------------------------------
-    while True:
-        print("\n1) MNIST (28x28) - entspricht 784 Input-Neuronen und etwa 16.000 Trainingsbeispielen (hier wird zusätzlich das Paket pandas benötigt).")
-        print("2) Digits (8x8) - entspricht 64 Input-Neuronen und etwa 400 Trainingsbeispielen.")
-        ds_choice = input("Auf welchem Datensatz soll trainiert werden? (1/2): ")
-
-        if ds_choice == "1":
-            dataset = "mnist"
-            break
-        elif ds_choice == "2":
-            dataset = "digits"
-            break
-        else:
-            print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
-
-    if dataset == "digits":
+    if len(sys.argv)<2:
+        print("=== Einstellungen für das Neuronale Netz ===")
+        
+        # ------------------------------
+        # 1. Datensatz auswählen
+        # ------------------------------
         while True:
-            print("\nWelchen Trainingsmodus möchtest du verwenden?")
-            print("1) Full Batch Gradient Descent")
-            print("2) Mini Batch (SGD)")
-            mode_choice = input("Bitte wählen (1/2): ")
+            print("\n1) MNIST (28x28) - entspricht 784 Input-Neuronen und etwa 16.000 Trainingsbeispielen (hier wird zusätzlich das Paket pandas benötigt).")
+            print("2) Digits (8x8) - entspricht 64 Input-Neuronen und etwa 400 Trainingsbeispielen.")
+            ds_choice = input("Auf welchem Datensatz soll trainiert werden? (1/2): ")
 
-            if mode_choice == "1":
-                train_mode = "full_batch"
+            if ds_choice == "1":
+                dataset = "mnist"
                 break
-            elif mode_choice == "2":
-                train_mode = "mini_batch"
+            elif ds_choice == "2":
+                dataset = "digits"
                 break
             else:
                 print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
-    else:
-        # MNIST → immer mini-batch
-        train_mode = "mini_batch"
-        print("\nHinweis: MNIST ist zu groß für Full Batch Gradient Descent, daher wird Stochastic Gradient Descent automatisch verwendet.")
 
-    # ------------------------------
-    # 2. Aktivierungsfunktion wählen
-    # ------------------------------
-    while True:
-        print("\nWelche Aktivierungsfunktion soll verwendet werden?")
-        print("1) Sigmoid (dann wird automatisch MSE als Loss verwendet, weil Cross-Entropy )")
-        print("2) Softplus")
-        act_choice = input("Bitte wählen (1/2): ")
-
-        if act_choice == "1":
-            activation = "sigmoid"
-            loss = "mse"  
-            break
-
-        elif act_choice == "2":
-            activation = "softplus"
-
-            # ------------------------------
-            # 3. Loss wählen
-            # ------------------------------
+        if dataset == "digits":
             while True:
-                print("\nWelcher Loss soll verwendet werden?")
-                print("1) MSE")
-                print("2) Cross-Entropy")
-                loss_choice = input("Bitte wählen (1/2): ")
+                print("\nWelchen Trainingsmodus möchtest du verwenden?")
+                print("1) Full Batch Gradient Descent")
+                print("2) Mini Batch (SGD)")
+                mode_choice = input("Bitte wählen (1/2): ")
 
-                if loss_choice == "1":
-                    loss = "mse"
+                if mode_choice == "1":
+                    train_mode = "full_batch"
+                    
                     break
-                elif loss_choice == "2":
-                    loss = "ce"
+                elif mode_choice == "2":
+                    train_mode = "mini_batch"
                     break
                 else:
-                    print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
+                    print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+        else:
+            # MNIST → immer mini-batch
+            train_mode = "mini_batch"
+            print("\nHinweis: MNIST ist zu groß für Full Batch Gradient Descent, daher wird Stochastic Gradient Descent automatisch verwendet.")
 
-            break
+        # ------------------------------
+        # 2. Aktivierungsfunktion wählen
+        # ------------------------------
+        while True:
+            print("\nWelche Aktivierungsfunktion soll verwendet werden?")
+            print("1) Sigmoid (dann wird automatisch MSE als Loss verwendet, weil Cross-Entropy )")
+            print("2) Softplus")
+            act_choice = input("Bitte wählen (1/2): ")
 
+            if act_choice == "1":
+                activation = "sigmoid"
+                loss = "mse"  
+                break
+
+            elif act_choice == "2":
+                activation = "softplus"
+
+                # ------------------------------
+                # 3. Loss wählen
+                # ------------------------------
+                while True:
+                    print("\nWelcher Loss soll verwendet werden?")
+                    print("1) MSE")
+                    print("2) Cross-Entropy")
+                    loss_choice = input("Bitte wählen (1/2): ")
+
+                    if loss_choice == "1":
+                        loss = "mse"
+                        break
+                    elif loss_choice == "2":
+                        loss = "ce"
+                        break
+                    else:
+                        print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
+
+                break
+
+            else:
+                print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+        
+        while True:
+            print(f"\nWelchen Wert (>0) soll die Lernrate haben? Ist der Wert \u2264 0 wird der Standardwert verwendet.")
+            eingabe = input("Bitte als Dezimalzahl angeben: ")
+            try:
+                learningrate = float(eingabe)
+                break
+            except ValueError:
+                print("Das war keine gültige Dezimalzahl. Bitte erneut versuchen.")
+        
+        if learningrate<=0:
+            print("Eingabe für die Lernrate ist kleiner gleich 0! Es wird der Standardwert verwendet.")
+            
+            if train_mode == "full_batch" and activation == "softplus":
+                learningrate=0.03
+            elif train_mode == "full_batch" and activation == "sigmoid":
+                learningrate=1.4
+            else:
+                learningrate=0.1
+    else:
+        if sys.argv[1] == "1":
+            dataset = "mnist"
+        elif sys.argv[1] == "2":
+            dataset = "digits"
         else:
             print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
-
+        
+        if sys.argv[2] == "1":
+            train_mode = "full_batch"
+        elif sys.argv[2] == "2":
+            train_mode = "mini_batch"
+        else:
+            print("Ungültige Eingabe! Bitte 1 oder 2 eingeben.")
+        
+        if sys.argv[3] == "2":
+            activation = "softplus"
+            if sys.argv[4] == "1":
+                loss = "mse"
+            elif sys.argv[4] == "2":
+                loss = "ce"
+            else:
+                print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
+        else:
+            activation = "sigmoid"
+            loss = "mse"
+        
+        learningrate=float(sys.argv[5])
+    
     print("\n=== Zusammenfassung der Auswahl ===")
     print("Datensatz:        ", dataset)
     print("Trainingsmodus:   ", train_mode)
     print("Aktivierung:      ", activation)
     print("Lossfunktion:     ", loss)
+    print("Lernrate:         ", learningrate)
     print("=====================================\n")
-
+    
     net = Network(dataset=dataset, activation_mode=activation) 
 
     if train_mode == "full_batch" and activation == "softplus":
-        net.train_full_batch(net.training_data, epochs=50, lr=0.03)
+        net.train_full_batch(net.training_data, epochs=50, lr=learningrate) #optimal lr=0.03
     elif train_mode == "full_batch" and activation == "sigmoid":
-        net.train_full_batch(net.training_data, epochs=50, lr=1.4)
+        net.train_full_batch(net.training_data, epochs=50, lr=learningrate) #optimal lr=1.4
     else:
         net.SGD(net.training_data,
                 net.test_data,
                 epochs=30,
                 mini_batch_size=30,
-                eta=0.1)
+                eta=learningrate)    #optimal lr=0.1
 
     accuracy = net.evaluate(net.test_data) 
     percentage = accuracy[0] / len(net.test_data) * 100
@@ -589,5 +640,16 @@ if __name__ == "__main__":
     net.print_confusion_matrix(classes=[1,5,7])
     net.plot_loss()
     
-    print(net.loss_test)
-
+    os.makedirs("loss", exist_ok=True)
+    
+    filename = os.path.join("loss", f"{dataset}_{train_mode}_{activation}_{learningrate}.npz")
+    
+    np.savez(filename, array_a=net.loss_training, array_b=net.loss_test)
+    
+    print(f"Losses for training and testing are saved in: {filename}\n")
+    """
+    geladen = np.load(filename)
+    
+    print(geladen["array_a"])
+    print(geladen["array_b"])
+    """
