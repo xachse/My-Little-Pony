@@ -591,16 +591,16 @@ if __name__ == "__main__":
         
         if sys.argv[3] == "2":
             activation = "softplus"
-            if sys.argv[4] == "1":
-                loss = "mse"
-            elif sys.argv[4] == "2":
-                loss = "ce"
-            else:
-                print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
         else:
             activation = "sigmoid"
-            loss = "mse"
         
+        if sys.argv[4] == "1":
+            loss = "mse"
+        elif sys.argv[4] == "2":
+            loss = "ce"
+        else:
+            print("Ungültige Eingabe, bitte 1 oder 2 eingeben.")
+                
         learningrate=float(sys.argv[5])
     
     if learningrate<=0:
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     
     os.makedirs("loss", exist_ok=True)
     
-    filename = os.path.join("loss", f"{dataset}_{train_mode}_{activation}_{learningrate}.npz")
+    filename = os.path.join("loss", f"{dataset}_{train_mode}_{activation}_{loss}_{learningrate}.npz")
     
     np.savez(filename, array_a=net.loss_training, array_b=net.loss_test)
     
