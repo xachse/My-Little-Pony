@@ -292,7 +292,7 @@ class Network():
             self.biases[i]  -= lr * nabla_b[i] / len(self.training_data)
     
 
-    def train_full_batch(self, training_data, epochs=50, lr=0.1, loss="mse"):
+    def train_full_batch(self, epochs=50, lr=0.1, loss="mse"):
         """
         Diese Funktion trainiert das Netzwerk mit Full Batch Gradient Descent. 
         In jeder Epoche werden die Gradienten für alle Trainingsdaten berechnet und aufsummiert. 
@@ -306,7 +306,7 @@ class Network():
             sum_nabla_w = [np.zeros_like(w) for w in self.weights]
             sum_nabla_b = [np.zeros_like(b) for b in self.biases]
 
-            for x, y in training_data:  # berechne Gradienten für jedes Trainingspunkt 
+            for x, y in self.training_data:  # berechne Gradienten für jedes Trainingspunkt 
                 nabla_w, nabla_b = self.backprop(x, y, loss)
 
                 for i in range(len(self.weights)):  # Gradienten aufsummieren
@@ -315,7 +315,7 @@ class Network():
 
                 self.update_params(sum_nabla_w, sum_nabla_b, lr)
 
-            for x,y in training_data:
+            for x,y in self.training_data:
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
@@ -324,7 +324,7 @@ class Network():
             
             self.loss_training[epoch]=current_loss
             
-            for x,y in test_data:
+            for x,y in self.test_data:
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
@@ -652,9 +652,9 @@ if __name__ == "__main__":
     net = Network(dataset=dataset, activation_mode=activation) 
 
     if train_mode == "full_batch" and activation == "softplus":
-        net.train_full_batch(net.training_data, epochs=50, lr=learningrate) #optimal lr=0.03
+        net.train_full_batch(epochs=50, lr=learningrate) #optimal lr=0.03
     elif train_mode == "full_batch" and activation == "sigmoid":
-        net.train_full_batch(net.training_data, epochs=50, lr=learningrate) #optimal lr=1.4
+        net.train_full_batch(epochs=50, lr=learningrate) #optimal lr=1.4
     else:
         net.SGD(net.training_data,
                 net.test_data,
