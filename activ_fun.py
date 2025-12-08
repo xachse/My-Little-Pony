@@ -322,7 +322,7 @@ class Network():
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
             
-            self.loss_training[j]=current_loss
+            self.loss_training[epoch]=current_loss
             
             for x,y in test_data:
                 activations, _ = self.forward(x)
@@ -330,8 +330,7 @@ class Network():
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
-            
-            self.loss_training[epoch]=current_loss            
+                     
             self.loss_test[epoch]=current_loss
             
             progress=round(epoch/epochs*100,1)
