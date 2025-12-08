@@ -10,7 +10,7 @@ class Network():
     def __init__(self, dataset='mnist', activation_mode="sigmoid"):
         '''
         Diese Funktion verwendet die Glorot-Initiliaiserung, um zufällige, gleichverteilte Gewichte mit geringer Varianz für das Netzwerk
-        zu erstellen mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
+        zu erstellen, mit gegebenen Anzahlen der Neuronen pro Schicht. In unserem Fall sind dies 64/28^2 Input-Neuronen,
         64 in der zweiten Layer, 32 in der dritten und schließlich 3 in der letzten Layer.
         Anschließend werden die Test- und Trainingsdaten importiert und vorbereitet.
         '''
@@ -18,22 +18,27 @@ class Network():
         self.weights = []
 
         self.activation_mode = activation_mode
+
         self.loss_training=[]
         self.loss_test=[]
 
         if dataset == "digits":
             self.sizes = [64, 64, 32, 3]
-            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
+            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  
             self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_digits()
         elif dataset == "mnist":
             self.sizes = [784, 64, 32, 3]
-            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  # im Fall von vollem MNIST-Traning mit wurzel(1/x) initialisieren -> verringert Varianz
+            self.biases = [np.zeros((y, 1)) for y in self.sizes[1:]]  
             self.weights = [np.random.randn(y, x) * np.sqrt(1 / x) for x, y in zip(self.sizes[:-1], self.sizes[1:])]
             self.load_mnist()
 
 
     def load_digits(self):
+        """
+        Diese Funktion lädt den Digits-Datensatz aus sklearn.datasets, filtert die Bilder der Ziffern 1, 5 und 7 heraus
+        (1, 5 und 7 werden zu 0, 1 und 2), teilt die Daten in Trainings- und Testdaten auf und wandelt die Daten in Vektoren um.
+        """
         digits = sklearn.datasets.load_digits()
         X = digits.data  # Matrix mit 1797 Zeilen (Anzahl der Bilder, nach Dokumentation) und 64 Spalten (8x8 Bilder)    
         y = digits.target  # Labels (Zahlen von 0 bis 9)
@@ -57,6 +62,10 @@ class Network():
 
     
     def load_mnist(self):
+        """
+        Diese Funktion lädt den MNIST-Datensatz aus sklearn.datasets, filtert die Bilder der Ziffern 1, 5 und 7 heraus
+        (1, 5 und 7 werden zu 0, 1 und 2), teilt die Daten in Trainings- und Testdaten auf und wandelt die Daten in Vektoren um.
+        """
         mnist = sklearn.datasets.fetch_openml("mnist_784", version=1, as_frame=False)
         X = mnist["data"]
         y = mnist["target"].astype(int)
@@ -84,28 +93,43 @@ class Network():
 
 
     # ---------------------------------------------------------
-    # Aktivierungsfunktionen abhängig vom Mode
+    # Aktivierungsfunktionen abhängig von Einstellung
     # ---------------------------------------------------------
 
     def activation(self, x):
+        """
+        Diese Funktion gibt die Aktivierungsfunktion zurück. 
+        """
         if self.activation_mode == "sigmoid":
             return self.sigmoid(x)
         elif self.activation_mode == "softplus":
             return self.softplus(x)
 
     def activation_prime(self, x):
+        """
+        Diese Funktion gibt die Ableitung der Aktivierungsfunktion zurück.
+        Dies wird für Backpropagation benötigt.
+        """
         if self.activation_mode == "sigmoid":
             return self.sigmoid_prime(x)
         elif self.activation_mode == "softplus":
             return self.sigmoid(x)
 
     def output_activation(self, x):
+        """
+        Diese Funktion gibt die Aktivierungsfunktion für den Output-Layer zurück. 
+        Denn im Falle von softplus soll im Output-Layer die Identitätsfunktion verwendet werden.
+        """
         if self.activation_mode == "sigmoid":
             return self.sigmoid(x)
         elif self.activation_mode == "softplus":
             return x  
 
     def output_activation_prime(self, x):
+        """
+        Diese Funktion gibt die Ableitung der Aktivierungsfunktion für den Output-Layer zurück.
+        Dies wird für Backpropagation benötigt.
+        """
         if self.activation_mode == "sigmoid":
             return self.sigmoid_prime(x)
         elif self.activation_mode == "softplus":
@@ -124,7 +148,7 @@ class Network():
     def forward(self, a):
         '''
         Diese Funktion wertet das Netzwerk aus, abhängig vom Input 'a' (ein Spaltenvektor) und gibt die
-        Aktivierungen aller Layer sowie die z-Werte (W@a + b) zurück.
+        Aktivierungen aller Layer sowie die z-Werte (W @ a + b) zurück.
         '''
         activations = [a]  # Liste aller a
         zs = []             # Liste aller z = W @ a + b // werden für Backpropagation benötigt
@@ -221,10 +245,10 @@ class Network():
 
     def backprop(self, x, y_true, loss="mse"):
         """
-        Berechnet die Gradienten der Gewichte und Biases für EIN Trainingsbeispiel (x, y_true).
-        Rückgabe:
-        nabla_w: Liste gleicher Form wie self.weights
-        nabla_b: Liste gleicher Form wie self.biases
+        Berechnet die Gradienten der Gewichte und Biases für ein Trainingsbeispiel (x, y_true) und gibt 
+        die Listen nabla_w und nabla_b zurück.
+        nabla_w: Partielle Ableitungen der Gewichte in Liste gleicher Form wie self.weights.
+        nabla_b: Partielle Ableitungen der Biases in Liste gleicher Form wie self.biases.
         """
 
         #  Forward: Aktivierungen und z-Werte speichern 
@@ -259,12 +283,20 @@ class Network():
     
 
     def update_params(self, nabla_w, nabla_b, lr):
+        """
+        Diese Funktion aktualisiert die Gewichte und Biases des Netzwerks basierend auf den übergebenen Gradienten
+        und der Lernrate lr.
+        """
         for i in range(len(self.weights)):
             self.weights[i] -= lr * nabla_w[i] / len(self.training_data)
             self.biases[i]  -= lr * nabla_b[i] / len(self.training_data)
     
 
     def train_full_batch(self, training_data, epochs=50, lr=0.1, loss="mse"):
+        """
+        Diese Funktion trainiert das Netzwerk mit Full Batch Gradient Descent. 
+        In jeder Epoche werden die Gradienten für alle Trainingsdaten berechnet und aufsummiert. 
+        """
         
         self.loss_training=np.zeros(epochs)
         self.loss_test=np.zeros(epochs)
@@ -282,26 +314,13 @@ class Network():
                     sum_nabla_b[i] += nabla_b[i]
 
                 activations, _ = self.forward(x)
-                if loss == "mse":
-                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
-                elif loss == "ce":
-                    current_loss = self.cross_entropy_loss(activations[-1], y)
+            if loss == "mse":
+                current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+            elif loss == "ce":
+                current_loss = self.cross_entropy_loss(activations[-1], y)
             
             self.loss_training[epoch]=current_loss
             self.update_params(sum_nabla_w, sum_nabla_b, lr)
-            
-            for x, y in training_data:  # berechne Gradienten für jeden Testpunkt 
-                nabla_w, nabla_b = self.backprop(x, y, loss)
-
-                for i in range(len(self.weights)):  # Gradienten aufsummieren
-                    sum_nabla_w[i] += nabla_w[i]
-                    sum_nabla_b[i] += nabla_b[i]
-
-                activations, _ = self.forward(x)
-                if loss == "mse":
-                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
-                elif loss == "ce":
-                    current_loss = self.cross_entropy_loss(activations[-1], y)
             
             self.loss_test[epoch]=current_loss
             
