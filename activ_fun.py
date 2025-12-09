@@ -504,7 +504,7 @@ class Network():
         frame+=f"\n\033[{epochs//2-3}C EPOCHS\n"
         
         #print legend
-        frame+=f"\033[31m \u2588\u2588\u2588 \033[37m{string_1}\n\033[34m \u2588\u2588\u2588 \033[37m{string_2}\n"
+        frame+=f"\033[31m \u2588\u2588\u2588 \033[39m{string_1}\n\033[34m \u2588\u2588\u2588 \033[39m{string_2}\n"
         
         #print y-axis label
         frame+=f"\033[{epochs+9}C\033[{hoehe//2+8}AL\033[1B\033[1DO\033[1B\033[1DS\033[1B\033[1DS\n"
