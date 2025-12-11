@@ -500,7 +500,7 @@ class Network():
             frame+=f"{i}"
             number_of_digits=int(len(str(i)))
 
-            #Ausgleich, wenn die Zahl länger als eine Ziffer ist
+            #compensation, if the number is longer as one digit
             for j in range(5-number_of_digits):
                 frame+=" "
             
