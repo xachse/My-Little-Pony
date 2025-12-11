@@ -437,34 +437,34 @@ class Network():
                 #print functions
                 if abs(temp_2)<=1/2*temp_3:
                     #if test_loss's value is near middle of box
-                    frame+="\033[31m\u2588\033[37m"
+                    frame+="\033[31m\u2588\033[39m"
                 elif abs(temp_2a)<=1/2*temp_3:
                     #if test_loss's value is near the middle betwenn this box and the box down
                     if abs(temp_1)<=1/2*temp_3 or abs(temp_1b)<=1/2*temp_3:
                         #if training_loss's value is near the middle of this box
                         #or training_loss's value is near the middle between this bos and the box above
-                        frame+="\033[31m\033[44m\u2584\033[37m\033[40m"
+                        frame+="\033[31m\033[44m\u2584\033[39m\033[49m"
                     else:
                         #training_loss's value is far away
-                        frame+="\033[31m\u2584\033[37m"
+                        frame+="\033[31m\u2584\033[39m"
                 elif abs(temp_2b)<=1/2*temp_3:
                     #if test_loss's value is near the middle betwenn thos box and the box above
                     if abs(temp_1)<=1/2*temp_3 or abs(temp_1a)<=1/2*temp_3:
                         #if training_loss's value is near the middle of this box
                         #or training_loss's value is near the middle between this bos and the box down
-                        frame+="\033[31m\033[44m\u2580\033[37m\033[40m"
+                        frame+="\033[31m\033[44m\u2580\033[39m\033[49m"
                     else:
                         #training_loss's value is far away
-                        frame+="\033[31m\u2580\033[37m"
+                        frame+="\033[31m\u2580\033[39m"
                 elif abs(temp_1)<=1/2*temp_3:
                     #if training_loss's value is near the middle of the box 
-                    frame+="\033[34m\u2588\033[37m"
+                    frame+="\033[34m\u2588\033[39m"
                 elif abs(temp_1a)<=1/2*temp_3:
                     #if training_loss's value is near the middle of this box and the box down
-                    frame+="\033[34m\u2584\033[37m"
+                    frame+="\033[34m\u2584\033[39m"
                 elif abs(temp_1b)<=1/2*temp_3:
                     #if training_loss's value is near the middle of this box and the upper box
-                    frame+="\033[34m\u2580\033[37m"
+                    frame+="\033[34m\u2580\033[39m"
                 else:
                     if i==hoehe-1:
                         frame+="_"    #lower frame
