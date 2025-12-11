@@ -144,7 +144,6 @@ class Network():
         e[j] = 1.0
         return e
     
-
     def forward(self, a):
         '''
         Diese Funktion wertet das Netzwerk aus, abhängig vom Input 'a' (ein Spaltenvektor) und gibt die
@@ -164,7 +163,6 @@ class Network():
 
         return activations, zs
     
-
     def evaluate(self, test_data):
         '''
         Diese Funktion wertet die Leistung des Netzwerks anhand der Testdaten aus. test_data ist eine Liste von Tupeln
@@ -180,9 +178,7 @@ class Network():
             test_results.append((pred, y))
         return sum(int(x == y) for (x, y) in test_results), test_results
     
-
     # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
-
     def SGD(self, training_data, test_data, epochs, mini_batch_size, eta, loss="mse"):
         """Train the neural network using mini-batch stochastic
         gradient descent.  The ``training_data`` is a list of tuples
@@ -200,7 +196,8 @@ class Network():
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, loss)
-            
+
+            #calculate the loss from training data
             for x,y in training_data:
                 activations, _ = self.forward(x)
                 if loss == "mse":
@@ -209,7 +206,8 @@ class Network():
                     current_loss = self.cross_entropy_loss(activations[-1], y)
             
             self.loss_training[j]=current_loss
-            
+
+            #calculate thhe loss from test data
             for x,y in test_data:
                 activations, _ = self.forward(x)
                 if loss == "mse":
@@ -222,7 +220,6 @@ class Network():
             progress=round(j/epochs*100,1)
             
             print(f"Training progress: {progress} %    ", end="\r")
-
 
     def update_mini_batch(self, mini_batch, eta, loss="mse"):
         """Update the network's weights and biases by applying
@@ -241,7 +238,6 @@ class Network():
                        for b, nb in zip(self.biases, nabla_b)]
     
     # Stochastic Gradient Descent (SGD) Methode von Michael Nielsen's Buch "Neural Networks and Deep Learning"
-
 
     def backprop(self, x, y_true, loss="mse"):
         """
@@ -281,7 +277,6 @@ class Network():
 
         return nabla_w, nabla_b
     
-
     def update_params(self, nabla_w, nabla_b, lr):
         """
         Diese Funktion aktualisiert die Gewichte und Biases des Netzwerks basierend auf den übergebenen Gradienten
@@ -291,7 +286,6 @@ class Network():
             self.weights[i] -= lr * nabla_w[i] / len(self.training_data)
             self.biases[i]  -= lr * nabla_b[i] / len(self.training_data)
     
-
     def train_full_batch(self, epochs=50, lr=0.1, loss="mse"):
         """
         Diese Funktion trainiert das Netzwerk mit Full Batch Gradient Descent. 
@@ -337,9 +331,7 @@ class Network():
 
             print(f"Training progress: {progress} %    ", end="\r")
 
-
-    # Loss-Funktionen, so wie die Aktivierungsfunktionen und deren Ableitungen
-
+    # Loss-Funktionen, sowie die Aktivierungsfunktionen und deren Ableitungen:
     def mse_loss(self, y_pred, y_true):
         return 0.5 * np.sum((y_pred - y_true)**2)
     
@@ -364,10 +356,9 @@ class Network():
         return self.sigmoid(x)
     
     def print_confusion_matrix(self, classes=[1,5,7]):
-    
         ergebnis=self.evaluate(self.test_data)[1]
         n=len(classes)
-        m=len(ergebnis)
+        #m=len(ergebnis)
         
         confusion_matrix=np.zeros((n, n), dtype=int)
         targets_number=np.zeros(n, dtype=int)
@@ -387,7 +378,6 @@ class Network():
         for i in range(n):
             string+=temp+"\u253C"
         string+=temp+"\n"
-        
         
         for i in range(n):
             string+=str(classes[i])+"\t"
@@ -412,13 +402,14 @@ class Network():
         print(string)
     
     def plot_loss(self):
-        
+        #define labels for the legend
         string_1="Loss training"
         string_2="Loss test"
         
-        werte_2=self.loss_training
+        #werte_2=self.loss_training
         epochs=len(self.loss_training)
-        
+
+        #Dimensions of the plot
         hoehe=21
         breite=epochs
         
@@ -445,22 +436,34 @@ class Network():
                 
                 #print functions
                 if abs(temp_2)<=1/2*temp_3:
+                    #if test_loss's value is near middle of box
                     frame+="\033[31m\u2588\033[37m"
                 elif abs(temp_2a)<=1/2*temp_3:
+                    #if test_loss's value is near the middle betwenn this box and the box down
                     if abs(temp_1)<=1/2*temp_3 or abs(temp_1b)<=1/2*temp_3:
+                        #if training_loss's value is near the middle of this box
+                        #or training_loss's value is near the middle between this bos and the box above
                         frame+="\033[31m\033[44m\u2584\033[37m\033[40m"
                     else:
+                        #training_loss's value is far away
                         frame+="\033[31m\u2584\033[37m"
                 elif abs(temp_2b)<=1/2*temp_3:
+                    #if test_loss's value is near the middle betwenn thos box and the box above
                     if abs(temp_1)<=1/2*temp_3 or abs(temp_1a)<=1/2*temp_3:
+                        #if training_loss's value is near the middle of this box
+                        #or training_loss's value is near the middle between this bos and the box down
                         frame+="\033[31m\033[44m\u2580\033[37m\033[40m"
                     else:
+                        #training_loss's value is far away
                         frame+="\033[31m\u2580\033[37m"
                 elif abs(temp_1)<=1/2*temp_3:
+                    #if training_loss's value is near the middle of the box 
                     frame+="\033[34m\u2588\033[37m"
                 elif abs(temp_1a)<=1/2*temp_3:
+                    #if training_loss's value is near the middle of this box and the box down
                     frame+="\033[34m\u2584\033[37m"
                 elif abs(temp_1b)<=1/2*temp_3:
+                    #if training_loss's value is near the middle of this box and the upper box
                     frame+="\033[34m\u2580\033[37m"
                 else:
                     if i==hoehe-1:
@@ -484,6 +487,8 @@ class Network():
         
         frame+="|"
         i+=1
+
+        #this loop get executed, if epochs%5!=0
         while i<=epochs-1:
             frame+="'"
             i+=1
@@ -494,7 +499,8 @@ class Network():
         while i<=epochs:
             frame+=f"{i}"
             number_of_digits=int(len(str(i)))
-            
+
+            #Ausgleich, wenn die Zahl länger als eine Ziffer ist
             for j in range(5-number_of_digits):
                 frame+=" "
             
@@ -509,7 +515,8 @@ class Network():
         #print y-axis label
         frame+=f"\033[{epochs+9}C\033[{hoehe//2+8}AL\033[1B\033[1DO\033[1B\033[1DS\033[1B\033[1DS\n"
         frame+=f"\033[{hoehe//2+6}B\n"
-        
+
+        #plott
         print(frame)
 
 if __name__ == "__main__":
