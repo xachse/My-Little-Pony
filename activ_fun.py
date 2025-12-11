@@ -355,35 +355,54 @@ class Network():
     def softplus_prime(self, x):
         return self.sigmoid(x)
     
+    # ------------------------------
+    # output to the terminal
+    # ------------------------------
+    
     def print_confusion_matrix(self, classes=[1,5,7]):
         ergebnis=self.evaluate(self.test_data)[1]
         n=len(classes)
-        #m=len(ergebnis)
         
+        #initialize confusion matrix
+        #and list of cardinality of every class
         confusion_matrix=np.zeros((n, n), dtype=int)
         targets_number=np.zeros(n, dtype=int)
         
+        #count number of targets and prediction in every class
         for (x,y) in ergebnis:
             confusion_matrix[y,x]+=1
             targets_number[y]+=1
         
+        #uper left corner of confusion matrix
         string="Real\t|Predicted\n\t"
         
+        #upper line of matrix
         for i in range(n):
             string+="|"+str(classes[i])+"\t"
         string+="\n\u2500"
         
+        #horizontal separator line between two fields of confusion matrix
         temp="\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
         
+        #horizontal separator line between first and second lines of the confusion matrix
         for i in range(n):
             string+=temp+"\u253C"
         string+=temp+"\n"
         
         for i in range(n):
+            #print upper half of the most left field of line i
             string+=str(classes[i])+"\t"
+            
+            #print upper half of every field of the confusion matrix
+            #(right of the most left field)
             for j in range(n):
                 string+="|"+str(confusion_matrix[i,j])+"\t"
+            
+            #print lower half of the most left field
             string+="\n\t"
+            
+            #print lower half of every field of the confusion matrix
+            #(right of the most left field)
             for j in range(n):
                 percentage=round(confusion_matrix[i,j]/targets_number[i]*100, 1)
                 
@@ -392,6 +411,8 @@ class Network():
                 else:
                     string+="|"+str(percentage)+" %"
             string+="\n\u2500"
+            
+            #separator line between two lines of the confusion matrix
             for j in range(n):
                 if i!=n-1:
                     string+=temp+"\u253C"
@@ -399,6 +420,7 @@ class Network():
                     string+=temp+"\u2534"
             string+=temp+"\n"
         
+        #output confusion matrix
         print(string)
     
     def plot_loss(self):
