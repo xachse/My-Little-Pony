@@ -197,25 +197,37 @@ class Network():
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta, loss)
 
-            #calculate the loss from training data
-            for x,y in training_data:
-                activations, _ = self.forward(x)
-                if loss == "mse":
-                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
-                elif loss == "ce":
-                    current_loss = self.cross_entropy_loss(activations[-1], y)
-            
-            self.loss_training[j]=current_loss
+            for x, y in self.training_data:  # berechne Gradienten für jedes Trainingspunkt 
+                nabla_w, nabla_b = self.backprop(x, y, loss)
 
-            #calculate thhe loss from test data
-            for x,y in test_data:
+                for i in range(len(self.weights)):  # Gradienten aufsummieren
+                    sum_nabla_w[i] += nabla_w[i]
+                    sum_nabla_b[i] += nabla_b[i]
+
+                self.update_params(sum_nabla_w, sum_nabla_b, lr)
+
+            for x,y in self.training_data:
+                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
+                sum_loss += current_loss
             
-            self.loss_test[j]=current_loss
+            self.loss_training[epoch]=sum_loss
+            
+            for x,y in self.test_data:
+                sum_loss = 0
+                activations, _ = self.forward(x)
+                if loss == "mse":
+                    current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
+                elif loss == "ce":
+                    current_loss = self.cross_entropy_loss(activations[-1], y)
+                sum_loss += current_loss
+            
+                     
+            self.loss_test[epoch]=sum_loss
             
             progress=round(j/epochs*100,1)
             
@@ -310,22 +322,27 @@ class Network():
                 self.update_params(sum_nabla_w, sum_nabla_b, lr)
 
             for x,y in self.training_data:
+                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
+                sum_loss += current_loss
             
-            self.loss_training[epoch]=current_loss
+            self.loss_training[epoch]=sum_loss
             
             for x,y in self.test_data:
+                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
+                sum_loss += current_loss
+            
                      
-            self.loss_test[epoch]=current_loss
+            self.loss_test[epoch]=sum_loss
             
             progress=round(epoch/epochs*100,1)
 
