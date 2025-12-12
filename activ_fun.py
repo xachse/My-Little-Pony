@@ -215,7 +215,7 @@ class Network():
                     current_loss = self.cross_entropy_loss(activations[-1], y)
                 sum_loss += current_loss
             
-            self.loss_training[epoch]=sum_loss
+            self.loss_training[epoch]=sum_loss / len(training_data)
             
             for x,y in self.test_data:
                 sum_loss = 0
@@ -227,7 +227,7 @@ class Network():
                 sum_loss += current_loss
             
                      
-            self.loss_test[epoch]=sum_loss
+            self.loss_test[epoch]=sum_loss / len(self.test_data)
             
             progress=round(j/epochs*100,1)
             
@@ -330,7 +330,7 @@ class Network():
                     current_loss = self.cross_entropy_loss(activations[-1], y)
                 sum_loss += current_loss
             
-            self.loss_training[epoch]=sum_loss
+            self.loss_training[epoch]=sum_loss / len(self.training_data)
             
             for x,y in self.test_data:
                 sum_loss = 0
@@ -342,7 +342,7 @@ class Network():
                 sum_loss += current_loss
             
                      
-            self.loss_test[epoch]=sum_loss
+            self.loss_test[epoch]=sum_loss / len(self.test_data)
             
             progress=round(epoch/epochs*100,1)
 
