@@ -204,10 +204,11 @@ class Network():
                     sum_nabla_w[i] += nabla_w[i]
                     sum_nabla_b[i] += nabla_b[i]
 
-                self.update_params(sum_nabla_w, sum_nabla_b, lr)
-
+            self.update_params(sum_nabla_w, sum_nabla_b, lr)
+            
+            sum_loss = 0
+            
             for x,y in self.training_data:
-                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
@@ -217,15 +218,15 @@ class Network():
             
             self.loss_training[epoch]=sum_loss / len(training_data)
             
+            sum_loss = 0
+            
             for x,y in self.test_data:
-                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
                 elif loss == "ce":
                     current_loss = self.cross_entropy_loss(activations[-1], y)
                 sum_loss += current_loss
-            
                      
             self.loss_test[epoch]=sum_loss / len(self.test_data)
             
@@ -319,10 +320,11 @@ class Network():
                     sum_nabla_w[i] += nabla_w[i]
                     sum_nabla_b[i] += nabla_b[i]
 
-                self.update_params(sum_nabla_w, sum_nabla_b, lr)
-
+            self.update_params(sum_nabla_w, sum_nabla_b, lr)
+            
+            sum_loss = 0
+            
             for x,y in self.training_data:
-                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
@@ -332,8 +334,9 @@ class Network():
             
             self.loss_training[epoch]=sum_loss / len(self.training_data)
             
+            sum_loss = 0
+            
             for x,y in self.test_data:
-                sum_loss = 0
                 activations, _ = self.forward(x)
                 if loss == "mse":
                     current_loss = self.mse_loss(activations[-1], self.one_hot_encode(y))
@@ -341,7 +344,6 @@ class Network():
                     current_loss = self.cross_entropy_loss(activations[-1], y)
                 sum_loss += current_loss
             
-                     
             self.loss_test[epoch]=sum_loss / len(self.test_data)
             
             progress=round(epoch/epochs*100,1)
